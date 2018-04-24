@@ -2,8 +2,7 @@ def dataCleaning():
     
     '''
     This is the data cleaning function for the CE264 final project: Marriage Analysis
-    Return a pandas data frame and a numpy array:
-    The first one is the data (X), the second one is the observation (y) 
+    Return a pandas data frame and a numpy array: data (X) and observation (y)
     The name of each column refers to the JGSS data codebook
     For some combined categories in a particular data feature, please refer to the source code
     '''
