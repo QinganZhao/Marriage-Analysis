@@ -1,3 +1,3 @@
 # Marriage Analysis
-UC Berkeley CE264 Final Project
+UC Berkeley CE264 Final Project<br/>
 Author: Franklin Zhao, Kun Qian, Chenglong Li, Junzhe Shi, Ruxin Yan, Haoran Su
