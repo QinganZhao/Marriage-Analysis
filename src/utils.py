@@ -1,11 +1,24 @@
-def dataCleaning():
+def dataCleaning(marriageNum='Full', classNum=2, dropColumns=True):
     
     '''
     This is the data cleaning function for the CE264 final project: Marriage Analysis
     Return a pandas data frame and a numpy array: data (X) and observation (y)
     The name of each column refers to the JGSS data codebook
     For some combined categories in a particular data feature, please refer to the source code
+    
+    Parameters:
+    marriageNum: integer or 'Full'(as default); the number of sampled 'Marriage' class, 
+                 should be smaller than its actual number
+    classNum: 2(as default), 3 or 'Full'; the class number of the observation;
+              if 2, class 1 for 'Currently Marriage' and 2 for other
+              if 3, class 1 for 'Currently Marriage', 2 for 'Divorced', and 3 for other
+              if 'Full', check the code book for the meaning of each class         
+    dropColumns: whether drop the columns that may have correlation with the marriage status (default is True)
     '''
+    
+    # parameter check
+    if classNum not in [2, 3, 'Full']:
+        raise ValueError('Invalid class number: should be 2, 3, or "Full".')    
     
     # import libraries and raw data
     import numpy as np
@@ -24,7 +37,7 @@ def dataCleaning():
                    'FFO03WHY', 'FFO05REL', 'FFO05WHY', 'FFO06REL', 'FFO06WHY', 'INCSELF', 'INCSP', 'INCPEN',
                    'INCUEB', 'INCIRR', 'INCRENT', 'INCMAIN', 'SZINCOMA', 'XNUMSISE', 'XNUMBROY', 'XSSNBROY', 
                    'XSSNSISY', 'PREF15', 'TP5LOC15', 'PPJBXX15', 'PPJBSZ15', 'MMJBTP15', 'XXLSTSCH','SSLSTSCH', 
-                   'PPLSTSCH', 'DOLSTSCH', 'XGRADE', 'XSPSCH']
+                   'PPLSTSCH', 'DOLSTSCH', 'XGRADE', 'XSPSCH', 'MARC']
     selectedData = rawData[selectedCol]
     
     # filter data with more than 1500 'NA' values
@@ -33,6 +46,15 @@ def dataCleaning():
         if len(selectedData[selectedData[i] == 'Not applicable']) < 1500:
             NAfilter += [i]
     selectedData = selectedData[NAfilter]
+    
+    # sample the marriage class
+    if marriageNum != 'Full':
+        marriageClass = selectedData[selectedData['MARC'] == 'Currently married']
+        dropNum = len(marriageClass) - marriageNum
+        if not dropNum > 0:
+            raise ValueError('The number of sampled "Marriage" class should be smaller than its actual number. Try another value.')
+        drop_id = np.random.choice(marriageClass.index, dropNum, replace=False)
+        selectedData = selectedData.drop(drop_id) 
     
     # data cleaning...
     selectedData['SIZE'].replace('Largest cities', 1, inplace=True)
@@ -182,18 +204,65 @@ def dataCleaning():
     selectedData['DOLSTSCH'].replace('Still a student', 3, inplace=True)
     selectedData['XSPSCH'].replace('Yes', 1, inplace=True)
     selectedData['XSPSCH'].replace('No', 2, inplace=True)
+    
+    # drop those terms correlated to marriage status
+    selectedData.drop('SSJB1WK', axis=1, inplace=True)
+    selectedData.drop('SPAGEX', axis=1, inplace=True)
+    selectedData.drop('SPLVTG', axis=1, inplace=True)
+    selectedData.drop('INCSP', axis=1, inplace=True)
+    selectedData.drop('SSLSTSCH', axis=1, inplace=True)
+    selectedData.drop('XSSNBROY', axis=1, inplace=True)
+    selectedData.drop('XSSNSISY', axis=1, inplace=True)
+    
+    if dropColumns == True:
+        selectedData.drop('CCNUMTTL', axis=1, inplace=True)
+        selectedData.drop('CC01SEX', axis=1, inplace=True)
+        selectedData.drop('CC01AGE', axis=1, inplace=True)
+        selectedData.drop('SZFFOTHR', axis=1, inplace=True)
+        selectedData.drop('SZFFONLY', axis=1, inplace=True)
+        selectedData.drop('SZFFTTL', axis=1, inplace=True)
+        selectedData.drop('FFHEAD', axis=1, inplace=True)  
+    
     selectedData.replace('No answer', 0, inplace=True)
-    selectedData.replace('Not applicable', 0, inplace=True)
-    cleanedData = selectedData.copy()
+    selectedData.replace('Not applicable', 0, inplace=True)   
 
     # observation cleaning
-    observation = np.array(rawData['MARC'])
+    observation = np.array(selectedData['MARC'])
     cleanedObservation = np.zeros(len(observation))
-    for i in range(len(observation)):
-        if observation[i] == 'Currently married':
-            cleanedObservation[i] = 1
-        else:
-            cleanedObservation[i] = 2
+    
+    if classNum == 2:    
+        for i in range(len(observation)):
+            if observation[i] == 'Currently married':
+                cleanedObservation[i] = 1
+            else:
+                cleanedObservation[i] = 2
+    elif classNum == 3:
+        for i in range(len(observation)):
+            if observation[i] == 'Currently married':
+                cleanedObservation[i] = 1
+            elif observation[i] == 'Divorced':
+                cleanedObservation[i] = 2 
+            else:
+                cleanedObservation[i] = 3
+    else:
+         for i in range(len(observation)):
+            if observation[i] == 'Currently married':
+                cleanedObservation[i] = 1
+            elif observation[i] == 'Divorced':
+                cleanedObservation[i] = 2 
+            elif observation[i] == 'Widowed':
+                cleanedObservation[i] = 3 
+            elif observation[i] == 'Never-married':
+                cleanedObservation[i] = 4 
+            elif observation[i] == 'Separated':
+                cleanedObservation[i] = 5 
+            elif observation[i] == 'Cohabiting':
+                cleanedObservation[i] = 6 
+            else:
+                cleanedObservation[i] = 9       
+            
+    selectedData.drop('MARC', axis=1, inplace=True)
+    cleanedData = selectedData.copy()
     cleanedObservation = cleanedObservation.astype(int)
             
     return cleanedData, cleanedObservation
