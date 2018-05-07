@@ -266,3 +266,41 @@ def dataCleaning(marriageNum='Full', classNum=2, dropColumns=True):
     cleanedObservation = cleanedObservation.astype(int)
             
     return cleanedData, cleanedObservation
+
+def svm_test():
+    #you need to import pandas, numpy, sklearn.svm.SVC, sklearn to use this function
+    data = pd.read_csv('cleanedData.csv',header = None)
+    data = np.asarray(data)[1:,1:]
+    result = pd.read_csv('cleanedObservation.csv',header = None)
+    result = np.asarray(result)[1:,1]
+    trainSample = np.random.choice(range(5000), 4000, replace=False)
+    trainData = data[trainSample,:]
+    trainObservation = result[trainSample]
+    testSample = np.setdiff1d(np.arange(5003), trainSample)
+    testData = data[testSample,:]
+    testObservation = result[testSample]
+    prediction = clf.predict(testData)
+    accuracy = np.sum(np.abs(prediction.astype(int) - testObservation.astype(int)))
+    score = sklearn.metrics.accuracy_score(testObservation, prediction)
+    return accuracy, score
+
+def decision_tree():
+    df1 = pd.read_csv('cleanedData.csv')
+    df2 = pd.read_csv('cleanedObservation.csv')
+    x = df1[df1.columns[1:]]
+    y = df2['MARC']
+    x_new = SelectKBest(chi2, k=10).fit_transform(x, y)
+    x_train,x_test,y_train,y_test = cross_validation.train_test_split(x_new,y,test_size=0.4,random_state=0)
+    score = []
+    i_range = range(3,40)
+    for i in range(3,40):
+        clf = tree.DecisionTreeClassifier(max_depth=i)
+        clf = clf.fit(x_train,y_train)
+        score.append((clf.score(x_test,y_test)))
+    ##plt.plot(i_range, score)
+    depth = score.index(max(score)) + 5
+    clf = tree.DecisionTreeClassifier(max_depth= depth)
+    clf = clf.fit(x_train,y_train)
+    score = max(score)
+    accuracy = np.sum(np.abs(clf.predict(x_test).astype(int) - y_test.astype(int)))
+    return score, accuracy,metrics.confusion_matrix(y_test, clf.predict(x_test))
